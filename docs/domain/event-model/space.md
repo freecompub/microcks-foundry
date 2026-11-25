@@ -6,9 +6,10 @@ membership every other context checks before it answers. Export tokens, AI provi
 are described in `ARCHITECTURE.md` and are not modelled until their own slice.
 
 State changed by these slices: the space itself, written once with its slug, its display name and
-its members. It is a self-validating entity, not an aggregate root, so this context raises no
-domain event here ([../../architecture/space.md](../../architecture/space.md) § Aggregates,
-§ Domain events).
+its members. It is a self-validating entity rather than an aggregate root, because no story of this
+slice set changes it after it is created
+([../../architecture/space.md](../../architecture/space.md) § Aggregates); it still records the fact
+of its creation, which is the successful outcome of the command that created it.
 
 ```mermaid
 timeline
@@ -16,7 +17,7 @@ timeline
     section Command
         The platform creates a team space : CreateTeamSpace
     section Event
-        None in this slice set : no aggregate root of this context
+        The space exists : TeamSpaceCreated
     section Read Model
         The space and its members : TeamSpaceView
         Whether a person belongs to a space : SpaceMembershipView
@@ -27,11 +28,12 @@ timeline
 | Step | Kind | Name | Fields |
 |---|---|---|---|
 | 1 | Command | `CreateTeamSpace` | `Slug: SpaceSlug`, `DisplayName: text`, `Members: list of MemberId`, `CreatedBy: MemberId` |
-| 2 | Read Model | `TeamSpaceView` | `TeamSpaceId: TeamSpaceId`, `Slug: SpaceSlug`, `DisplayName: text`, `Members: list of MemberId` |
+| 2 | Event | `TeamSpaceCreated` | `TeamSpaceId: TeamSpaceId`, `Slug: SpaceSlug`, `CreatedBy: MemberId` |
+| 3 | Read Model | `TeamSpaceView` | `Accepted: yes/no`, `RefusalReason: text?`, `TeamSpaceId: TeamSpaceId?`, `Slug: SpaceSlug?`, `DisplayName: text?`, `Members: list of MemberId` |
 
-Observed: a `TeamSpaceView` per space, two spaces of the same instance sharing no member unless the
-platform placed the same person in both; a second space with the same slug is refused and no second
-`TeamSpaceView` exists for that slug.
+Observed: a `TeamSpaceView` per space with `Accepted` yes, two spaces of the same instance sharing
+no member unless the platform placed the same person in both; a second space with the same slug is
+refused, so no second space exists for that slug and no second `TeamSpaceCreated` is recorded.
 
 ## Slice SP-2 — Read the space a person belongs to
 
@@ -40,7 +42,11 @@ platform placed the same person in both; a second space with the same slug is re
 | 1 | Query | `GetTeamSpace` | `RequestedBy: MemberId`, `Slug: SpaceSlug?` |
 | 2 | Read Model | `TeamSpaceView` | as in SP-1 |
 
-Observed: `TeamSpaceView` for a space the caller belongs to; nothing for a space they do not.
+Observed: `TeamSpaceView.Accepted` yes with the space and its members for a space the caller
+belongs to; `Accepted` no with a `RefusalReason` and no space field otherwise — the same refusal,
+word for word, whether the space does not exist or the caller is not one of its members, so that
+nothing leaks about another team's spaces. `Accepted` and `RefusalReason` are the fields every read
+model of the project uses for the outcome of a read (`CONTRIBUTING.md` § Naming).
 
 ## Slice SP-3 — Answer every other context's membership question
 
@@ -62,5 +68,9 @@ caller's identity is established outside the model, at the entry point.
 
 | Fact | Why not here |
 |---|---|
-| `TeamSpaceCreated` | The ratified event (`ARCHITECTURE.md` § Domain events) is consumed by Traffic observation and Test design for state neither holds in this slice set, and no acceptance criterion observes it. This context has no aggregate root here, and a fact recorded outside an aggregate is not a domain event. The space is observed in `TeamSpaceView`. |
 | `TrafficTokenIssued`, `TrafficTokenRevoked`, `AiProviderSelected`, `AiProviderEnabled`, `AiProviderDisabled` | Their commands are out of this slice set (PRD E2.7, E4.5). |
+
+`TeamSpaceCreated` has no consumer in this slice set — its ratified consumers are Traffic
+observation and Test design (`ARCHITECTURE.md` § Domain events) — and no acceptance criterion
+observes it: what the stories observe is `TeamSpaceView`. It is modelled all the same, because it
+is the recorded successful outcome of `CreateTeamSpace`.

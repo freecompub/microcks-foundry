@@ -16,11 +16,11 @@ pass).
 
 | Criterion | Component | Components of the design it exercises |
 |---|---|---|
-| AC-01 — one nominal example per operation | microcks-foundry | `ManagedApi` entity and `ContractRevisionReader` → `ContractRevision` → `ContractOperationList`, translated into this context's values by the anticorruption layer of `application.design`; `AlgorithmCatalog`, `ValueResolver`, `DeterministicValueGenerator`, `NominalExampleDesigner` → `DesignedExample`, `DesignedExampleSet`, `DesignTechnique` = `Nominal`; `GenerationManifest`; `ApiExamplesDocumentWriter`; `SubmitProposal` → `ProposalSubmitted`; read model `DesignedExampleSetView` |
-| AC-02 — the ZIP exists only after approval | microcks-foundry | `Proposal` with `ReviewItem`, `Decision`, `CheckReport`, `ApprovedSnapshot`; `ApiExamplesValidator`; `ProposalApproved`; `FindApprovedSnapshot` → `ApprovedSnapshotView`; `Delivery`, `ArchiveName`, `ArchiveEntry`, `ArchiveWriter`, `ArchivePrepared`; read models `ProposalReview` and `DeliveryView` (`Exists`, `DownloadAvailable`) |
-| AC-03 — no approval while an item is pending | microcks-foundry | `Proposal` invariant on approval, `Decision` = `Pending`; read model `ProposalReview` (`PendingItemCount`, `ApprovalRefusalReason`); no `ProposalApproved`, no `ApprovedSnapshotView`, no `Delivery` |
+| AC-01 — one nominal example per operation | microcks-foundry | `ManagedApi` entity with `ManagedApiRegistered` and `ContractRevisionReader` → `ContractRevision` → `ContractOperationList`, translated into this context's values by the anticorruption layer of `application.design`; `AlgorithmCatalog`, `ValueResolver`, `DeterministicValueGenerator`, `NominalExampleDesigner` → `DesignedExample`, `DesignedExampleSet`, `DesignTechnique` = `Nominal`; `GenerationManifest`; `ApiExamplesDocumentWriter`; `SubmitProposal` → `ProposalSubmitted`; read model `DesignedExampleSetView` |
+| AC-02 — the ZIP exists only after approval | microcks-foundry | `Proposal` with `ReviewItem`, `Decision`, `CheckReport`, `ApprovedSnapshot`; `ApiExamplesValidator`; `ProposalApproved`; `FindApprovedSnapshot` → `ApprovedSnapshotView`; `Delivery`, `ArchiveName`, `ArchiveEntry`, `ArchiveWriter`, `ArchivePrepared`; read models `ProposalReview` and `DeliveryView` (`Accepted`, `DownloadLocation`) |
+| AC-03 — no approval while an item is pending | microcks-foundry | `Proposal` invariant on approval, `Decision` = `Pending`; read model `ProposalReview` (`PendingItemCount`, `Approved`, `RefusalReason`); no `ProposalApproved`, no approved snapshot handed over, no `Delivery` |
 | AC-04 — a contract that is not REST is refused | microcks-foundry | `ContractFormat`, `ContractRevision` construction rule, `UnsupportedContractFormat`; `RegisterManagedApi` error result; read model `ContractLoadResult` (`Accepted`, `RefusalReason`, `DetectedFormat`, `SupportedFormats`) |
-| AC-05 — the journey is proved end to end | microcks-foundry | the whole chain above driven through the application's own entry point in `foundry-app`, in this order: `RegisterManagedApi` → `ContractLoadResult`, `GenerateExamples` → `DesignedExampleSetView` and `ProposalSubmitted`, `GetProposal` → `ProposalReview`, `AcceptItem` per item, `RunPreDeliveryChecks` → `CheckReportView`, `ApproveProposal` → `ProposalApproved`, `PrepareArchive` → `ArchivePrepared`, `GetDelivery` → `DeliveryView` (`DownloadAvailable`, `DownloadLocation`, `Entries`), then the archive fetched at that location. Every step is scoped by the space, on the answer of `FindSpaceMembership`. The APIExamples document the archive carries is compared with the versioned API Pastry 2.0 reference document; a mismatch prints the diff (`ARCHITECTURE.md` § Test organization). No browser, no front-end component and no new gate take part. |
+| AC-05 — the journey is proved end to end | microcks-foundry | the whole chain above driven through the application's own entry point in `foundry-app`, in this order: `RegisterManagedApi` → `ContractLoadResult`, `GenerateExamples` → `DesignedExampleSetView` and `ProposalSubmitted`, `GetProposal` → `ProposalReview`, `AcceptItem` per item, `RunPreDeliveryChecks` → `CheckReportView`, `ApproveProposal` → `ProposalApproved`, `PrepareArchive` → `ArchivePrepared`, `GetDelivery` → `DeliveryView` (`Accepted`, `DownloadLocation`, `Entries`), then the archive fetched at that location. Every step is scoped by the space, on the answer of `FindSpaceMembership`. The APIExamples document the archive carries is compared with the versioned API Pastry 2.0 reference document; a mismatch prints the diff (`ARCHITECTURE.md` § Test organization). No browser, no front-end component and no new gate take part. |
 
 ## Shared documents cited
 
@@ -44,9 +44,11 @@ pass).
   their events — this story fills them for the first time, it does not redefine them.
 - Narrow for this slice set: the ratified `ManagedApi` and `TeamSpace` are built as self-validating
   entities, not aggregate roots, because no story of this pass changes one of them after it is
-  written; their aggregate invariants and their domain events arrive with the stories that change a
-  contract source, an update mode, a membership or a token (`docs/architecture/contract.md`,
-  `docs/architecture/space.md`, § Aggregates).
+  written. Each still records the fact of its own creation — `ManagedApiRegistered`,
+  `TeamSpaceCreated` — as the successful outcome of its command; their aggregate invariants and the
+  events of the changes they do not yet accept arrive with the stories that change a contract
+  source, an update mode, a membership or a token (`docs/architecture/contract.md`,
+  `docs/architecture/space.md`, § Aggregates, § Domain events).
 - Create new: the Test design value objects and domain services, the gateways named above, the
   published membership and approved-snapshot reads, and the first real feature files, which retire
   the temporary `diagnostic` probe as `ARCHITECTURE.md` § Test organization requires.
@@ -81,8 +83,8 @@ in `ARCHITECTURE.md` § Test organization.
 Consequences carried by this answer:
 
 - the archive of an approved snapshot is fetchable through the entry point: `DeliveryView` carries
-  `DownloadAvailable` and `DownloadLocation`, and `ArchiveWriter` hands the stored archive back when
-  it is fetched (`docs/architecture/delivery.md` § Gateways);
+  `Accepted` and `DownloadLocation`, and `ArchiveWriter` hands the stored archive back when it is
+  fetched (`docs/architecture/delivery.md` § Gateways);
 - the reference set and the expected APIExamples document are versioned test resources, so the
   comparison and its diff need no running UI and no browser tooling;
 - nothing in this slice proves the review screen; that proof arrives with the T5 UI story.

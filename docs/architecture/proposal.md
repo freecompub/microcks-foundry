@@ -26,7 +26,10 @@ Supporting subdomain. Packages: `domain.proposal`, `application.proposal`
     check report and withdraws approval;
   - approval freezes an `ApprovedSnapshot` of the files to deliver, and a delivery only ever uses
     that snapshot; a rejected item is excluded from it;
-  - a refused approval changes nothing: it is an error result of the command, not a revision.
+  - a refused approval changes nothing: it is an error result of the command, not a revision. The
+    review read model reports it as `Approved` no with a `RefusalReason` — the state under its own
+    domain name, the refusal under the one name every read model of the project uses
+    (`CONTRIBUTING.md` § Naming).
 - **References by identity only:** `TeamSpaceId`, `ManagedApiId`.
 - **Size:** bounded to one examples file per API and version. `ReviewItem` becomes its own
   aggregate only once concurrent review is shown to conflict (`ARCHITECTURE.md` § Aggregates);
@@ -100,12 +103,12 @@ decision (`ARCHITECTURE.md` § Context map).
 |---|---|---|---|
 | `SubmitProposal` | Application (`application.proposal.api`) | the space, the API, the kind, the author, the files and the review items with their provenance | the proposal identity at revision 1 |
 | `ProposalApproved` (integration event) | Application (`application.proposal.api`) | — | identities, the approved revision, the author, the time and the snapshot hash |
-| `FindApprovedSnapshot` | Application (`application.proposal.api`) | `TeamSpaceId`, `ProposalId` | `ApprovedSnapshotView`: whether an approved snapshot exists, the approved revision, the snapshot hash and, for every file, its path, its content and its content hash; a refusal reason when the proposal is not approved |
+| `FindApprovedSnapshot` | Application (`application.proposal.api`) | `TeamSpaceId`, `ProposalId`, `RequestedBy: MemberId` | `ApprovedSnapshotView`: `Accepted` — whether an approved snapshot is handed over — the approved revision, the snapshot hash and, for every file, its path, its content and its content hash; `RefusalReason` when the proposal is not approved. The caller is named because this context checks membership for it before it answers, as it does for every command and every query of its own |
 
 | Consumer | What it needs from this contract |
 |---|---|
 | Test design | `SubmitProposal`, to put a designed set in front of a person |
-| Delivery | `ProposalApproved` to know an approval happened, and `FindApprovedSnapshot` to obtain the very files and hashes it must write — a delivery exists only for an approved snapshot (`ARCHITECTURE.md` § Context map), and it never reads this context's repository |
+| Delivery | `ProposalApproved` to know an approval happened, and `FindApprovedSnapshot` to obtain the very files and hashes it must write, which it copies into entries of its own — a delivery exists only for an approved snapshot (`ARCHITECTURE.md` § Context map), and it never reads this context's repository |
 
 It grows by addition only; a reader ignores a field it does not know, and no caller may reach a
 handler or a repository of this context directly (rule `R2` at `ARCHITECTURE.md` § Planned

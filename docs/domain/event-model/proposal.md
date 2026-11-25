@@ -37,7 +37,7 @@ no event; its result is the `ProposalReview` read model used by every slice belo
 |---|---|---|---|
 | 1 | Command | `SubmitProposal` | `TeamSpaceId: TeamSpaceId`, `ManagedApiId: ManagedApiId?`, `Kind: ProposalKind`, `SubmittedBy: MemberId`, `Files: list of FileChange`, `Items: list of ReviewItem` — each carrying its `Provenance`, `GenerationManifestHash: text?` |
 | 2 | Event | `ProposalSubmitted` | `TeamSpaceId: TeamSpaceId`, `ProposalId: ProposalId`, `ManagedApiId: ManagedApiId?`, `Kind: ProposalKind`, `Revision: count`, `ItemCount: count`, `GenerationManifestHash: text?` |
-| 3 | Read Model | `ProposalReview` | `ProposalId: ProposalId`, `TeamSpaceId: TeamSpaceId`, `ManagedApiId: ManagedApiId?`, `Kind: ProposalKind`, `Revision: count`, `Files: list of FileChangeView`, `Items: list of ReviewItemView`, `PendingItemCount: count`, `Checks: CheckReportView?`, `Approved: yes/no`, `ApprovalRefusalReason: text?` |
+| 3 | Read Model | `ProposalReview` | `ProposalId: ProposalId`, `TeamSpaceId: TeamSpaceId`, `ManagedApiId: ManagedApiId?`, `Kind: ProposalKind`, `Revision: count`, `Files: list of FileChangeView`, `Items: list of ReviewItemView`, `PendingItemCount: count`, `Checks: CheckReportView?`, `Approved: yes/no`, `RefusalReason: text?` |
 | 3a | Read Model | `FileChangeView` | `Path: text`, `Diff: text`, `Reasons: list of text` |
 | 3b | Read Model | `ReviewItemView` | `ReviewItemId: identifier`, `OperationKey: OperationKey`, `ExampleName: text`, `Technique: DesignTechnique`, `AlgorithmRef: AlgorithmRef`, `ValueOrigins: list of ValueOriginView`, `Decision: one of Pending \| Accepted \| Corrected \| Rejected` |
 | 3c | Read Model | `CheckReportView` | `Revision: count`, `Passed: yes/no`, `ApiExamplesValid: yes/no`, `OperationKeysMatchContract: yes/no`, `Findings: list of text` |
@@ -81,21 +81,31 @@ why only the failure carries a count.
 
 Observed: `ProposalReview.Approved` yes and `ProposalApproved` once every item carries a decision
 and the checks of the current revision passed; otherwise `ProposalReview.Approved` stays no,
-`ProposalReview.ApprovalRefusalReason` names how many items are still pending, and no
-`ProposalApproved` is recorded. A refused approval changes no state, so it raises no event.
+`ProposalReview.RefusalReason` names how many items are still pending, and no `ProposalApproved` is
+recorded. A refused approval changes no state, so it raises no event.
+
+`Approved` is the proposal's own state, so it keeps that name; the refusal is named `RefusalReason`,
+the one name every read model of the project gives a refusal (`CONTRIBUTING.md` § Naming).
 
 ## Slice PD-5 — Hand the frozen snapshot to a delivery
 
 | Step | Kind | Name | Fields |
 |---|---|---|---|
 | 1 | Query | `FindApprovedSnapshot` | `TeamSpaceId: TeamSpaceId`, `ProposalId: ProposalId`, `RequestedBy: MemberId` |
-| 2 | Read Model | `ApprovedSnapshotView` | `Exists: yes/no`, `ProposalId: ProposalId`, `Revision: count?`, `SnapshotHash: text?`, `Files: list of ApprovedFileView`, `RefusalReason: text?` |
+| 2 | Read Model | `ApprovedSnapshotView` | `Accepted: yes/no`, `RefusalReason: text?`, `ProposalId: ProposalId`, `Revision: count?`, `SnapshotHash: text?`, `Files: list of ApprovedFileView` |
 | 2a | Read Model | `ApprovedFileView` | `Path: text`, `Content: text`, `ContentHash: text` |
 
-Observed: while the proposal is not approved, `ApprovedSnapshotView.Exists` is no, `Files` is empty
-and `RefusalReason` says the proposal is not approved; once approved, `Files` holds one entry per
-file of the frozen snapshot, each with the content and the content hash approval froze, and a
+Observed: while the proposal is not approved, `ApprovedSnapshotView.Accepted` is no, `Files` is
+empty and `RefusalReason` says the proposal is not approved; once approved, `Files` holds one entry
+per file of the frozen snapshot, each with the content and the content hash approval froze, and a
 rejected item's content appears in none of them.
 
+`Accepted` and `RefusalReason` are the fields `ContractLoadResult`, `TeamContextView`,
+`GenerationReport`, `TeamSpaceView` and `DeliveryView` use for the outcome of a read: one shape for
+a refusal, everywhere a source is read (`CONTRIBUTING.md` § Naming).
+
 `FindApprovedSnapshot` is a pure read of the open host service: it raises no event, it is the only
-way another context obtains the approved files, and it grows by addition only.
+way another context obtains the approved files, and it grows by addition only. It names its caller,
+like every other query of this context, because membership is checked for that caller before the
+read is served. The consumer copies what it reads into values of its own rather than keeping this
+shape ([../../architecture/context-map.md](../../architecture/context-map.md)).

@@ -32,6 +32,7 @@ at a revision (`ARCHITECTURE.md` § Aggregates, § Rejected aggregates).
 - **Set rule, not an invariant of this entity:** one registration per API name and version inside a
   space. It spans different identities, so it is a storage constraint the repository relies on, not
   a reason to enlarge anything (`ARCHITECTURE.md` § Aggregates, set validation).
+- **Raises:** `ManagedApiRegistered`, the fact of its single registration.
 
 ## Value objects
 
@@ -58,14 +59,21 @@ rule `R2`, `ARCHITECTURE.md` § Planned architecture rules).
 
 ## Domain events
 
-None in this slice set. This context holds no aggregate root, so there is nothing to raise a domain
-event: an event raised anywhere else is not a domain event. The registration is observed through
-the `ContractLoadResult` read model, which carries the `ManagedApiId` the following commands use.
+| Event | Payload | Raised by | Consumers |
+|---|---|---|---|
+| `ManagedApiRegistered` | the space, the API identity, the member who registered it and the revision hash of the contract that was read — identities only, and no time, since nothing of this slice set dates the fact and the domain reads no clock (rule `R5` at `ARCHITECTURE.md` § Planned architecture rules) | the `ManagedApi` entity, when it is registered | none in this slice set |
 
-The ratified `ManagedApiRegistered` and the other events of this context (`ARCHITECTURE.md`
-§ Domain events) have their consumers in Traffic observation, Divergences and Coverage. None of
-those contexts exists in this slice set, and no acceptance criterion observes the event, so it
-arrives with the slice that gives this context an aggregate or a consumer.
+Registering an API is the successful outcome of a business command, so it is recorded as a domain
+event even though this context holds no aggregate root yet: a write-once entity records the fact of
+its creation (`ARCHITECTURE.md` § Aggregates). The event carries identities only, never the
+contract document. Its ratified consumers — Traffic observation, Divergences and Coverage
+(`ARCHITECTURE.md` § Domain events) — are not part of this slice set, and no acceptance criterion
+observes the event: what the stories observe is `ContractLoadResult`, which also carries the
+`ManagedApiId` the following commands use. A refused document raises nothing, because nothing was
+registered.
+
+`PrimarySourceDesignated`, `ContractUpdateModeChanged` and `ContractAudited` belong to the stories
+that change a source, an update mode or run an audit.
 
 ## Repositories
 
@@ -115,6 +123,7 @@ graph LR
     RegisterManagedApi[RegisterManagedApi: Command]
     FindContractRevision[FindContractRevision: Query]
     ManagedApi[ManagedApi: Entity]
+    ManagedApiRegistered[ManagedApiRegistered: Domain Event]
     ManagedApiRepository[ManagedApiRepository: Repository]
     ContractRevisionReader[ContractRevisionReader: Gateway]
     UnitOfWork[UnitOfWork: Gateway]
@@ -140,6 +149,7 @@ graph LR
     Operation --> ResponseDeclaration
     Operation --> FieldConstraint
     ManagedApi --> ContractSourceRef
+    ManagedApi --> ManagedApiRegistered
     FindContractRevision --> ManagedApiRepository
     FindContractRevision --> ContractRevisionReader
     FindContractRevision --> ContractOperationList

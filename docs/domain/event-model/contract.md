@@ -6,8 +6,9 @@ OpenAPI 3.x, and publishing the operations, their declared responses and their f
 the published language the Test design and the Proposal contexts read.
 
 State changed by these slices: the registration of one API inside a space. It is a write-once
-entity, not an aggregate root, so this context raises no domain event here
-([../../architecture/contract.md](../../architecture/contract.md) § Aggregates, § Domain events).
+entity rather than an aggregate root, because no story of this slice set changes it afterwards
+([../../architecture/contract.md](../../architecture/contract.md) § Aggregates); it still records
+the fact of its registration, which is the successful outcome of the command that created it.
 A `ContractRevision` is a value object read from the source, never state this context owns.
 
 The names below are the ones the skeleton and the code use. Rules are not restated here: the
@@ -19,7 +20,7 @@ timeline
     section Command
         Register a managed API : RegisterManagedApi
     section Event
-        None in this slice set : no aggregate root of this context
+        The API is attached to the space : ManagedApiRegistered
     section Read Model
         Outcome of the load : ContractLoadResult
         Operations of the contract : ContractOperationList
@@ -30,11 +31,13 @@ timeline
 | Step | Kind | Name | Fields |
 |---|---|---|---|
 | 1 | Command | `RegisterManagedApi` | `TeamSpaceId: TeamSpaceId`, `RequestedBy: MemberId`, `ApiName: text`, `ApiVersion: text`, `ContractSourceRef: ContractSourceRef` |
-| 2 | Read Model | `ContractLoadResult` | `Accepted: yes/no`, `ManagedApiId: ManagedApiId?`, `ApiName: text?`, `ApiVersion: text?`, `ContractRevisionHash: text?`, `DetectedFormat: ContractFormat`, `SupportedFormats: list of ContractFormat`, `RefusalReason: text?` |
+| 2 | Event | `ManagedApiRegistered` | `TeamSpaceId: TeamSpaceId`, `ManagedApiId: ManagedApiId`, `ContractRevisionHash: text`, `RegisteredBy: MemberId` |
+| 3 | Read Model | `ContractLoadResult` | `Accepted: yes/no`, `RefusalReason: text?`, `ManagedApiId: ManagedApiId?`, `ApiName: text?`, `ApiVersion: text?`, `ContractRevisionHash: text?`, `DetectedFormat: ContractFormat`, `SupportedFormats: list of ContractFormat` |
 
 Observed: `ContractLoadResult.Accepted`, `ContractLoadResult.RefusalReason` and
-`ContractLoadResult.SupportedFormats` when the loaded document is not OpenAPI 3.x;
-`ContractLoadResult.ManagedApiId` and `ContractLoadResult.ContractRevisionHash` when it is.
+`ContractLoadResult.SupportedFormats` when the loaded document is not OpenAPI 3.x, with no
+`ManagedApiRegistered` recorded; `ContractLoadResult.ManagedApiId` and
+`ContractLoadResult.ContractRevisionHash` when it is.
 
 ## Slice CG-2 — Publish the operations a generation designs from
 
@@ -58,5 +61,9 @@ reader ignores a field it does not know.
 
 | Fact | Why not here |
 |---|---|
-| `ManagedApiRegistered` | The ratified event (`ARCHITECTURE.md` § Domain events) is consumed by Traffic observation, Divergences and Coverage, none of which exists in this slice set, and no acceptance criterion observes it. This context has no aggregate root here, and a fact recorded outside an aggregate is not a domain event. The registration is observed in `ContractLoadResult`. |
 | `PrimarySourceDesignated`, `ContractUpdateModeChanged`, `ContractAudited` | Their commands (PRD E2.4, E2.13, E1.9) are out of this slice set. |
+
+`ManagedApiRegistered` has no consumer in this slice set — its ratified consumers are Traffic
+observation, Divergences and Coverage (`ARCHITECTURE.md` § Domain events) — and no acceptance
+criterion observes it: what the stories observe is `ContractLoadResult`. It is modelled all the
+same, because it is the recorded successful outcome of `RegisterManagedApi`.

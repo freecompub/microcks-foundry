@@ -50,10 +50,12 @@ rules).
 
 ## Domain events
 
-None. This context holds no aggregate root, so there is nothing to raise a domain event, and a fact
-recorded by a use case outside an aggregate is not one. The observable fact of a generation is
-`ProposalSubmitted`, raised by the `Proposal` aggregate root of the context that stores the
-outcome: a generation that produced nothing storable produced no fact.
+None. Nothing of this context changes state: a generation reads its inputs, computes and keeps
+nothing, so there is no fact of its own to record. The observable fact of a generation is
+`ProposalSubmitted`, raised where the outcome is stored — the `Proposal` aggregate root of the
+Proposal and decision context, reached through its open host service. That event is the recorded
+successful outcome of `GenerateExamples`, and a generation that produced nothing storable produced
+no fact.
 
 The ratified `ExamplesGenerated` of this context (`ARCHITECTURE.md` § Domain events) has Coverage
 as its only consumer. Coverage is not part of this slice set and no acceptance criterion observes
@@ -101,11 +103,13 @@ Being the Core downstream, this context adopts no upstream shape. `application.d
 anticorruption layer: it translates the `ContractOperationList` of Contract governance — its
 operation, response and field-constraint views — into this context's own values before any designer
 runs: the `OperationKey` of the shared kernel, the declared status codes a `DesignedExample` may
-attach to, and `FieldConstraintKind`. The team context snapshot is translated the same way into
-`Seed` and the dictionary values the `ValueResolver` reads. No view type of another context reaches
-a domain service, and the designers know nothing of OpenAPI.
+attach to, and `FieldConstraintKind`. The `TeamContextView` published by Team context is translated
+in the same anticorruption layer into `Seed` and the dictionary values the `ValueResolver` reads.
+No view type of another context reaches a domain service, and the designers know nothing of OpenAPI.
 
-Test design publishes `application.design.api` for its own consumers.
+This context publishes nothing: no story of this slice set names a consumer of what it designs, and
+what it produces is read through the `Proposal` it submits. A published package of its own arrives
+with the first story that names a consumer for it.
 
 ## Component diagram
 

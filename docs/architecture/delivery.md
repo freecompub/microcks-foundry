@@ -68,17 +68,27 @@ In-memory in `infrastructure.persistence.delivery` for these stories.
 
 The archive format, its bytes and where they are stored belong to the adapter
 (`infrastructure` layer): the context states the entries and their paths only. `DeliveryView`
-surfaces the location the gateway reports, so the entry point can serve the archive of an approved
-snapshot without any context handling bytes.
+reports the outcome of the read under the names `CONTRIBUTING.md` § Naming fixes — `Accepted` and
+`RefusalReason` — and carries the location the gateway reported, so the entry point can serve the
+archive of an approved snapshot without any context handling bytes. While nothing is approved,
+`Accepted` is no, the location is absent and the refusal says so.
 
 ## Contracts this context calls
 
 | Contract called | What this context asks for |
 |---|---|
-| `application.proposal.api` | `ProposalApproved`, the integration event that may trigger a delivery, and `FindApprovedSnapshot`, which returns the approved revision, the snapshot hash and every file of the snapshot with its content and its content hash — the inputs `ArchiveWriter` needs to write the archive and the entries the aggregate records (`ARCHITECTURE.md` § Context map) |
+| `application.proposal.api` | `ProposalApproved`, the integration event that may trigger a delivery, and `FindApprovedSnapshot` — asked for the space, the proposal and the caller — which answers whether an approved snapshot exists, the approved revision, the snapshot hash and every file of the snapshot with its content and its content hash: the inputs `ArchiveWriter` needs to write the archive and the entries the aggregate records (`ARCHITECTURE.md` § Context map) |
 | `application.space.api` | `FindSpaceMembership` for the caller, before a delivery is prepared or read |
 
-Delivery publishes `application.delivery.api` for its own consumers.
+`application.delivery` holds this context's anticorruption layer: it does not keep the published
+`ApprovedSnapshotView` shape, it copies each approved file into an `ArchiveEntry` of its own, at the
+output path of the team configuration, with the content hash the snapshot froze. That is what lets
+the archive carry the approved bytes however the proposal moves on afterwards, and it is the
+relationship drawn on [context-map.md](context-map.md).
+
+This context publishes nothing: no story of this slice set names a consumer of a delivery, and the
+archive is reached through the entry point, on `DeliveryView`. A published package of its own
+arrives with the first story that names a consumer for it.
 
 ## Component diagram
 

@@ -6,11 +6,12 @@ snapshot — one nominal example per operation, one example per declared error r
 example per field constraint — then submitting them for human decision and reporting what the
 contract did not declare.
 
-No state of this context changes: it holds no aggregate, so it raises no event of its own
+No state of this context changes: a generation reads its inputs, computes and keeps nothing, so
+there is no fact of its own to record
 ([../../architecture/design.md](../../architecture/design.md) § Domain events). What a generation
 produces becomes the `Proposal` aggregate root of another context, reached through its open host
-service, and the fact that aggregate raises — `ProposalSubmitted` — is the recorded outcome of every
-slice below.
+service, and the fact that aggregate raises — `ProposalSubmitted` — is the recorded successful
+outcome of `GenerateExamples` in every slice below.
 
 One trigger serves every slice: the generation requested by a person or by the CLI. It carries no
 technique selector; a technique is applied when its designer exists in the catalogue, and each

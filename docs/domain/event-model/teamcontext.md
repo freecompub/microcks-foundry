@@ -29,8 +29,13 @@ The ratified result of this query also carries the team's algorithms, memory and
 parts arrive with the slices that produce them. No story of this pass shows them.
 
 `Accepted`, `RefusalReason`, `ConfigurationFile` and `MissingConfigurationKey` are the same fields,
-under the same names, that `ContractLoadResult` and `GenerationReport` use for the outcome of
-loading a source: one shape for a refusal, everywhere a source is read.
+under the same names, that `ContractLoadResult`, `GenerationReport`, `ApprovedSnapshotView`,
+`DeliveryView` and `TeamSpaceView` use for the outcome of a read: one shape for a refusal,
+everywhere a source is read (`CONTRIBUTING.md` § Naming).
+
+`TeamContextView` is what this context publishes, and the only shape that crosses its boundary; the
+Core consumer translates it into its own values before designing anything
+([../../architecture/context-map.md](../../architecture/context-map.md)).
 
 Observed: `TeamContextView.Seed` and `TeamContextView.SnapshotHash`, equal for two reads of the same
 revision; when the configuration carries no seed, `Accepted` is no and `RefusalReason`,

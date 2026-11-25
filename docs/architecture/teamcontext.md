@@ -35,9 +35,11 @@ assembled from the message files.
 
 ## Domain events
 
-None in this slice set: nothing changes state here, and this context holds no aggregate root. The
-events of this context (`ValueLearned`, `LearnedValueConfirmed`, `MemoryPromotionProposed`,
-`ARCHITECTURE.md` § Domain events) belong to the memory slices.
+None in this slice set: nothing changes state here, so there is no fact to record. This context
+holds no command either — the team's git repository is the source of truth and it only reads a
+revision. The events of this context (`ValueLearned`, `LearnedValueConfirmed`,
+`MemoryPromotionProposed`, `ARCHITECTURE.md` § Domain events) belong to the memory slices, which
+bring the commands that produce them.
 
 ## Repositories
 
@@ -63,10 +65,13 @@ It calls `application.space.api` for one thing only, `FindSpaceMembership` for t
 never reads the storage of that context (rule `R2` and rule `R9`, `ARCHITECTURE.md` § Planned
 architecture rules).
 
-It publishes `application.teamcontext.api` with `GetTeamContext` (`ARCHITECTURE.md` § Queries): an
-immutable, versioned snapshot for Test design, which needs the seed and the dictionaries for a
-reproducible generation (`ARCHITECTURE.md` § Context map). It grows by addition only; a reader
-ignores a field it does not know.
+It publishes `application.teamcontext.api` with `GetTeamContext` (`ARCHITECTURE.md` § Queries) as
+its open host service: one stable view, `TeamContextView`, of an immutable, versioned snapshot, for
+Test design, which needs the seed and the dictionaries for a reproducible generation
+(`ARCHITECTURE.md` § Context map). The value objects above stay inside this context; what crosses
+the boundary is that view, and the Core consumer translates it in an anticorruption layer of its
+own ([context-map.md](context-map.md)). It grows by addition only; a reader ignores a field it does
+not know.
 
 ## Component diagram
 

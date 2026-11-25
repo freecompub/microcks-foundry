@@ -16,14 +16,14 @@ passed the eligibility gate (see the consistency matrix of this pass).
 
 | Criterion | Component | Components of the design it exercises |
 |---|---|---|
-| AC-01 — the content of a space is invisible from another | microcks-foundry | `TeamSpace` entity with its members; `TeamSpaceId` as the shared kernel; `TeamSpaceRepository` scoped by it; `FindSpaceMembership` → `SpaceMembershipView`, the published read every other context calls before it answers; `GetTeamSpace`; `GetTeamContext` with `TeamContextSource`; read models `TeamSpaceView` and `TeamContextView` (`Dictionaries`) |
+| AC-01 — the content of a space is invisible from another | microcks-foundry | `CreateTeamSpace` → `TeamSpaceCreated`; `TeamSpace` entity with its members; `TeamSpaceId` as the shared kernel; `TeamSpaceRepository` scoped by it; `FindSpaceMembership` → `SpaceMembershipView`, the published read every other context calls before it answers; `GetTeamSpace`; `GetTeamContext` with `TeamContextSource`; read models `TeamSpaceView` (`Accepted`, `RefusalReason`) and `TeamContextView` (`Dictionaries`) |
 | AC-02 — the seed of the configuration makes a generation reproducible | microcks-foundry | `TeamContextSource`, `TeamConfiguration`, `Seed`, `TeamContextSnapshot` and its content hash; read model `TeamContextView`; `GenerationManifest`, `DeterministicValueGenerator`, `ApiExamplesDocumentWriter`; read model `DesignedExampleSetView` (`DocumentHash`, `GenerationManifestHash`) |
 | AC-03 — no generation without a seed | microcks-foundry | `TeamConfiguration` construction rule and `MissingConfigurationKey`; `GenerateExamples` error result; read models `TeamContextView` and `GenerationReport`, both carrying `Accepted`, `RefusalReason`, `ConfigurationFile` and `MissingConfigurationKey` under those same names; no `ProposalSubmitted` and no proposal |
 
 ## Shared documents cited
 
-- `docs/architecture/context-map.md` — the shared kernel and the Customer/Supplier relationship
-  that carries the snapshot to Test design
+- `docs/architecture/context-map.md` — the shared kernel and the published view that carries the
+  snapshot to Test design, translated there in an anticorruption layer
 - `docs/architecture/space.md`, `docs/domain/event-model/space.md` — the space, its members and the
   rule every other context applies
 - `docs/architecture/teamcontext.md`, `docs/domain/event-model/teamcontext.md` — the configuration,
@@ -38,8 +38,9 @@ passed the eligibility gate (see the consistency matrix of this pass).
   `GenerationManifest` and the determinism rules (`ARCHITECTURE.md` § Reproducibility, rule `R5`).
 - Narrow for this slice set: the ratified `TeamSpace` is built as a self-validating entity with its
   slug, display name and members only, because no story of this pass changes a space after it is
-  created; its aggregate invariants, its token and its providers arrive with their stories
-  (`docs/architecture/space.md` § Aggregates).
+  created; it records `TeamSpaceCreated`, the fact of its creation, and its aggregate invariants,
+  its token and its providers arrive with their stories (`docs/architecture/space.md`
+  § Aggregates, § Domain events).
 - Create new: the published membership read of `application.space.api`, the Team context value
   objects and its one gateway; no aggregate and no repository in that context.
 
