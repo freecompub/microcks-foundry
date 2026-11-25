@@ -177,7 +177,7 @@ flowchart TB
     CG -->|"Published Language: contract model"| TD
     CG -->|"Published Language"| TR
     CG -->|"Published Language"| DV
-    TC -->|"Published Language: TeamContextSnapshot"| TD
+    TC -->|"Published Language: TeamContextView"| TD
     TC -->|"Published Language"| CG
     TC -->|"Published Language"| DV
     TR -->|"Customer/Supplier: ObservedCase"| TD

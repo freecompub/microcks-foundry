@@ -23,10 +23,17 @@ timeline
 | Step | Kind | Name | Fields |
 |---|---|---|---|
 | 1 | Query | `GetTeamContext` | `TeamSpaceId: TeamSpaceId`, `RequestedBy: MemberId` |
-| 2 | Read Model | `TeamContextView` | `Accepted: yes/no`, `RefusalReason: text?`, `TeamSpaceId: TeamSpaceId`, `SourceRevision: text`, `ConfigurationFile: text`, `MissingConfigurationKey: text?`, `Seed: Seed?`, `PrLanguage: one of fr \| en`, `Dictionaries: list of DictionaryRef` — each a name and an entry count, `SnapshotHash: text?` |
+| 2 | Read Model | `TeamContextView` | `Accepted: yes/no`, `RefusalReason: text?`, `TeamSpaceId: TeamSpaceId`, `SourceRevision: text`, `ConfigurationFile: text`, `MissingConfigurationKey: text?`, `Seed: whole number?`, `PrLanguage: one of fr \| en`, `Dictionaries: list of TeamDictionaryView`, `SnapshotHash: text?` |
+| 2a | Read Model | `TeamDictionaryView` | `DictionaryName: text`, `EntryCount: count` |
 
 The ratified result of this query also carries the team's algorithms, memory and skills; those
 parts arrive with the slices that produce them. No story of this pass shows them.
+
+The published view carries only fields of its own: the seed as a number, each dictionary as a name
+and an entry count. Behind it, this context holds the seed as its `Seed` value object and one
+`DictionaryRef` per dictionary, and neither crosses the boundary
+([../../architecture/teamcontext.md](../../architecture/teamcontext.md) § Value objects): the Core
+consumer builds its own `Seed` from the number it reads.
 
 `Accepted`, `RefusalReason`, `ConfigurationFile` and `MissingConfigurationKey` are the same fields,
 under the same names, that `ContractLoadResult`, `GenerationReport`, `ApprovedSnapshotView`,

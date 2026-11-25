@@ -73,6 +73,13 @@ the boundary is that view, and the Core consumer translates it in an anticorrupt
 own ([context-map.md](context-map.md)). It grows by addition only; a reader ignores a field it does
 not know.
 
+The view is therefore typed with fields of its own, never with the value objects above: the space
+identity of the shared kernel, the source revision, the configuration file and the absent key as
+text, the seed as a number, the PR language as its two values, and one `TeamDictionaryView` per
+dictionary carrying a name and an entry count. No `Seed`, `DictionaryRef`, `TeamConfiguration` or
+`TeamContextSnapshot` appears in it; Test design builds its own `Seed` from the number it reads
+([../domain/event-model/teamcontext.md](../domain/event-model/teamcontext.md) slice TC-1).
+
 ## Component diagram
 
 ```mermaid
@@ -86,6 +93,7 @@ graph LR
     MissingConfigurationKey[MissingConfigurationKey: Value Object]
     TeamContextSource[TeamContextSource: Gateway]
     TeamContextView[TeamContextView: Read Model]
+    TeamDictionaryView[TeamDictionaryView: Read Model]
 
     GetTeamContext --> TeamContextSource
     GetTeamContext --> TeamContextSnapshot
@@ -95,5 +103,5 @@ graph LR
     TeamConfiguration --> Seed
     TeamConfiguration --> PrLanguage
     TeamConfiguration --> MissingConfigurationKey
-    TeamContextView --> DictionaryRef
+    TeamContextView --> TeamDictionaryView
 ```

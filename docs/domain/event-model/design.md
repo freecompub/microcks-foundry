@@ -13,6 +13,13 @@ produces becomes the `Proposal` aggregate root of another context, reached throu
 service, and the fact that aggregate raises — `ProposalSubmitted` — is the recorded successful
 outcome of `GenerateExamples` in every slice below.
 
+`ExamplesGenerated`, the event the ratified model gives this context
+(`ARCHITECTURE.md` § Domain events), has Coverage as its only consumer. No slice below records it:
+Coverage is not built here and no acceptance criterion of these stories observes it. It is modelled
+with the slice that builds Coverage — the coverage report over the operations and techniques of a
+generation — and what links a generation to its proposal until then is the
+`DesignedExampleSetView.GenerationManifestHash` the proposal carries.
+
 One trigger serves every slice: the generation requested by a person or by the CLI. It carries no
 technique selector; a technique is applied when its designer exists in the catalogue, and each
 slice below adds one. The seed is never passed in the trigger: it comes from the team context
