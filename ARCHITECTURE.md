@@ -56,6 +56,14 @@ Surefire runs unit tests named `*Test`, and Failsafe runs integration tests name
 Unit tests cover domain and application behavior. Integration tests exercise adapters and the API composition,
 including the domain and application they compose.
 
+The end-to-end proof of a delivered slice enters through the application's own entry point. A Failsafe
+`*IT` test in `foundry-app` drives the published commands and queries over HTTP, in the order a person would,
+and compares the produced artifact with the reference set versioned under
+`foundry-app/src/test/resources/reference/<api>-<version>/`; a mismatch prints the diff between the produced
+and the expected file. A browser run over a web UI is not part of this proof: it belongs to the T5 web
+component, with the front-end component and the end-to-end gate that component brings
+(see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 Executable Gherkin belongs to `foundry-application/src/test/resources/feature/<name>/`.
 Its Java bindings belong to `foundry-application/src/test/java/io/microcks/foundry/application/feature/<name>/`.
 The Cucumber runner reads the whole `feature` resource folder and binding package. Cucumber and JUnit are test-scoped
