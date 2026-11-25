@@ -9,6 +9,12 @@ This document has two parts:
 
 The domain model is a design proposal and adds no requirement. Every element cites the PRD requirement (`E1.x`…`E5.x`) or section (`§`) it serves; the PRD prevails if they disagree. Code names (aggregates, commands, queries, events) are in English; the PRD glossary (§5) remains the reference for terms.
 
+The detailed design of the contexts under construction lives beside this document and derives from it: the working
+context map and one tactical design per context in [docs/architecture/](docs/architecture/), the slices of each context
+in [docs/domain/event-model/](docs/domain/event-model/), and one brief per delivered story in
+[docs/architecture/stories/](docs/architecture/stories/). This document stays the authority on modules, dependency
+direction, contexts, their types and their relationships; those files add the per-slice detail and never contradict it.
+
 ## Modules
 
 | Module | Responsibility | Allowed dependencies |
@@ -68,11 +74,14 @@ Adapter and API mutations are not part of this core mutation gate.
 
 The `diagnostic` classes, tests and Gherkin are temporary probes for the initial test and mutation setup, not product
 features. Replace them with real behavior and its tests before removing the probes; an empty mutation run must fail.
+The probes are removed in the pull request that delivers the first product slice: once that slice's domain and
+application tests and its Gherkin feature are green and the mutation run covers them, the `diagnostic` classes, their
+tests and `feature/diagnostic/` go in the same change, so the mutation gate is never left without a subject.
 
 ## Build baseline
 
 - JDK and Java release: 21, configured by `maven.compiler.release` in the root `pom.xml` and matched by CI.
-- Quarkus: `3.20.3`, configured once as `quarkus.platform.version` and used for both the platform BOM and Maven plugin.
+- Quarkus: `3.40.1.2`, configured once as `quarkus.platform.version` and used for both the platform BOM and Maven plugin.
 - CI runner: `ubuntu-latest` Linux x86_64; the native job produces an executable for that runner architecture.
 - Local native builds use the architecture of the container builder. Other operating systems and CPU architectures are not yet CI-supported.
 
@@ -487,6 +496,11 @@ These rules are planned, not yet enforced. Each one is added to `ArchitectureTes
 | R7 | Domain events are records with immutable components | Immutable events |
 | R8 | `domain` and `application` depend only on `java..`, `io.microcks.foundry..`, and `plugin.api` (allow-list) | Java-only core; parsers (swagger-parser, Gherkin, OpenAI, OpenTelemetry, YAML) stay in adapters |
 | R9 | `infrastructure.persistence.X` does not depend on `domain.Y` other than `shared` | Data isolation by context |
+| R10 | Every method of an `application.X.port` interface that reads or writes team-owned data takes a `TeamSpaceId` parameter | Isolation by space holds for reads as well as writes (§11 Isolation); a cross-space read is not expressible |
+
+Each rule is added with the slice that first makes it breakable: R5 and R8 with the slice that introduces the first
+deterministic generator and the first parser dependency, R10 with the slice that introduces the first team-scoped
+interface.
 
 CLI classes are covered once a dedicated architecture-test setup can see both entry points.
 
