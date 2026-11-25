@@ -2,7 +2,7 @@
 # Tactical design — Delivery (`delivery`)
 
 Generic subdomain. Packages: `domain.delivery`, `application.delivery`
-(`ARCHITECTURE.md:446-473`). Event model:
+(`ARCHITECTURE.md` § Code organization). Event model:
 [../domain/event-model/delivery.md](../domain/event-model/delivery.md).
 
 ## Aggregates
@@ -10,12 +10,13 @@ Generic subdomain. Packages: `domain.delivery`, `application.delivery`
 ### `Delivery` — Aggregate Root
 
 - **Root and identity:** `DeliveryId`, the natural identity `(ProposalId, approved revision,
-  channel)`, inside the `TeamSpaceId` of its space (`ARCHITECTURE.md:235`, invariants at
-  `ARCHITECTURE.md:236`).
+  channel)`, inside the `TeamSpaceId` of its space (`ARCHITECTURE.md` § Aggregates).
 - **Consistency boundary:** one delivery of one approved revision on one channel, with the entries
-  it contains. The identity is what makes a repeated request idempotent, which is an invariant
-  across successive requests for the same proposal revision — hence an aggregate rather than a
-  value object.
+  it contains. Because the identity is natural, every repeated or concurrent request for the same
+  proposal revision and channel addresses the same identity, and the invariant that it yields one
+  delivery and one set of entries holds across those successive and concurrent changes. That is the
+  transaction boundary, and it is why this context has an aggregate where a write-once registration
+  would not need one.
 - **Invariants:**
   - a delivery is created only from an `ApprovedSnapshot`; without approval there is no delivery
     and nothing to download;
@@ -31,9 +32,12 @@ Generic subdomain. Packages: `domain.delivery`, `application.delivery`
 | Value object | Holds | Rejects at construction |
 |---|---|---|
 | `DeliveryId` | the natural identity of a delivery | a missing proposal, revision or channel |
-| `DeliveryChannel` | `ZipArchive`, `GitHubPullRequest` or `AzureDevOpsPullRequest`; this slice set uses `ZipArchive` only | any other value |
+| `DeliveryChannel` | `ZipArchive`, the one channel of this slice set | any other value |
 | `ArchiveName` | the name under which the archive is offered, built from the API name and version | a blank name |
 | `ArchiveEntry` | the path of a file inside the archive and its content hash | an absolute path, an empty hash |
+
+The pull-request channels of the ratified model (`ARCHITECTURE.md` § Aggregates) add their members
+to `DeliveryChannel` with their own slice; nothing of them is designed here.
 
 The APIExamples document is written at the PRD's output path,
 `examples/<api>-<version>.examples.yaml`, which is the path the archive entry carries.
@@ -42,7 +46,7 @@ The APIExamples document is written at the PRD's output path,
 
 | Event | Payload | Consumers |
 |---|---|---|
-| `ArchivePrepared` | identities, the revision, the channel, the archive name and the entry count | Proposal, decision journal (`ARCHITECTURE.md:404`) |
+| `ArchivePrepared` | identities, the revision, the channel, the archive name and the entry count | Proposal, decision journal (`ARCHITECTURE.md` § Domain events) |
 
 `PullRequestOpened` and `DeliveryFailed` belong to the pull-request channel and are not part of
 this slice set.
@@ -53,7 +57,7 @@ this slice set.
 |---|---|---|
 | `DeliveryRepository` | Domain (`domain.delivery`) | it returns the `Delivery` aggregate and guards its idempotence; by the stack rule a repository that persists an aggregate belongs to the Domain layer. Every read is scoped by `TeamSpaceId`. |
 
-In-memory in `infrastructure.persistence.delivery` for these stories, as for the other contexts.
+In-memory in `infrastructure.persistence.delivery` for these stories.
 
 ## Gateways
 
@@ -69,9 +73,12 @@ snapshot without any context handling bytes.
 
 ## Contracts this context calls
 
-`application.proposal.api` for the approved snapshot a delivery is built from, and for the
-`ProposalApproved` integration event that may trigger it (`ARCHITECTURE.md:202`). Delivery
-publishes `application.delivery.api` for its own consumers.
+| Contract called | What this context asks for |
+|---|---|
+| `application.proposal.api` | `ProposalApproved`, the integration event that may trigger a delivery, and `FindApprovedSnapshot`, which returns the approved revision, the snapshot hash and every file of the snapshot with its content and its content hash — the inputs `ArchiveWriter` needs to write the archive and the entries the aggregate records (`ARCHITECTURE.md` § Context map) |
+| `application.space.api` | `FindSpaceMembership` for the caller, before a delivery is prepared or read |
+
+Delivery publishes `application.delivery.api` for its own consumers.
 
 ## Component diagram
 

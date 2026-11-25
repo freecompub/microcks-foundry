@@ -203,17 +203,19 @@ flowchart TB
 | Microcks → Contract governance | Anticorruption Layer | No Microcks type enters the domain; Foundry reads imported APIs and APIMetadata labels (E1.1, E2.4). Microcks triggers nothing in Foundry (principle 5). |
 | GitHub, Azure DevOps → Contract governance, Team context | Anticorruption Layer | Files are read at a revision; the domain sees `ContractRevision` and `TeamContextSnapshot`. |
 | OTLP, HAR → Traffic observation | Conformist to OpenTelemetry HTTP conventions, then Anticorruption Layer | Foundry does not negotiate OTLP (E2.1, E2.2); span → `Exchange` translation is the ACL (E2.7, E2.17). |
-| Contract governance → Test design, Traffic, Divergences | Published Language, consumers conformist | OpenAPI is already a published language; translating it per context would cost without benefit. The shared model stays limited to what the domain uses. |
+| Contract governance → Test design, Traffic, Divergences, Proposal and decision | Open Host Service and Published Language (`application.contract.api`) | OpenAPI is already a published language, so what this context publishes stays limited to what the domain uses: operations, their declared responses and their field constraints. A Core consumer (Test design, Divergences) translates that published model in an anticorruption layer of its own application layer, never reading it as its own type; a Supporting or Generic consumer (Traffic, Proposal and decision) may read it as published. |
 | Team context → Test design, Contract governance, Divergences | Customer/Supplier | Consumers need an immutable, versioned snapshot (seed, dictionaries, rules, modes) for reproducibility (E1.7). |
 | Traffic → Test design, Divergences | Customer/Supplier | Deduplicated observed cases become candidate examples (E2.3, E2.16); observed profiles feed divergences (E2.9). |
 | Upstream contexts → Proposal and decision | Open Host Service (`application.proposal.api`) | One entry point to human decision (E1.5, principle 1). |
 | Proposal → Delivery | Customer/Supplier through `ProposalApproved` | A delivery exists only for an approved snapshot (E1.5, E1.10). |
 | Foundry ↔ Microcks simulation and testing | Separate Ways | Foundry serves no mock and gives no verdict (principle 7, §12); E2.10 only *proposes* to run the Microcks test. |
-| Team spaces → all | Shared Kernel (`TeamSpaceId`, `ManagedApiId`, `OperationKey`, `AlgorithmRef`) | Isolation by team (§11); everything references others by identity. |
+| Team spaces → all | Shared Kernel (`TeamSpaceId`, `ManagedApiId`, `OperationKey`, `AlgorithmRef`) and Open Host Service (`application.space.api`) for the membership check | Isolation by team (§11); everything references others by identity. The identities are shared types; the membership every other context checks before it answers is a published read, not a reach into this context's storage. |
 
 ### Aggregates
 
 Rules (Vernon): an aggregate exists only to protect a transactional invariant; it stays small; it references other aggregates by identity only; a transaction changes one aggregate.
+
+An aggregate of this target model becomes one in the code only once a delivered slice gives it an invariant to hold across the successive or concurrent changes of one identity. Until then, the tactical design of its context (`docs/architecture/<context>.md`) builds it as a self-validating entity, says so, and names the story that turns it into an aggregate; while it is an entity it raises no domain event, since only an aggregate root does.
 
 #### `Proposal` — Proposal and decision
 

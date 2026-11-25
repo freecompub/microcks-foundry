@@ -70,6 +70,7 @@ Find the bounded context first in the [domain model](ARCHITECTURE.md#domain-mode
 | You are adding | Put it in | Rules |
 | --- | --- | --- |
 | Aggregate | `domain.<context>` | Only to protect a transactional invariant cited from the PRD; otherwise use a value object or a domain service. Reference other aggregates by identity (`ManagedApiId`), never by object. Keep `TeamSpaceId` on every aggregate. |
+| Entity with no transactional invariant | `domain.<context>` for the type, `application.<context>.port` for its repository | A stored identity written once, validated in its constructor, whose rules never span two changes. It raises no domain event: only an aggregate root does. Uniqueness across identities is a constraint of the store, not a reason to make it an aggregate. Keep `TeamSpaceId` on it. |
 | Value object | `domain.<context>`, or `domain.shared` if every context needs it | Immutable `record`; validate in the constructor so an invalid instance cannot exist. |
 | Domain service, algorithm | `domain.<context>`, or `domain.design` for catalog algorithms | Pure and deterministic: no clock, randomness, I/O, or framework. Take the seed and time as inputs. |
 | Domain event | `domain.<context>` | Past tense, immutable `record`, carries identities only. |
@@ -87,6 +88,7 @@ Find the bounded context first in the [domain model](ARCHITECTURE.md#domain-mode
 - Prefer a business-specific name for queries; use `Find`, `Retrieve`, or `List` where appropriate, and `Get` only when no clearer domain term fits (e.g., `ListPendingDecisions`).
 - Events are past-tense facts: `ProposalApproved`, `DivergenceDetected`.
 - Identifiers are typed value objects named `<Aggregate>Id`.
+- A read model that reports the outcome of loading or reading a source carries `Accepted` and `RefusalReason` under those names. When the refusal is a missing configuration entry, it also carries `ConfigurationFile` and `MissingConfigurationKey`. One shape for a refusal, wherever a source is read.
 - Algorithms keep the PRD identifiers and an explicit version, such as `boundary.values` v1. Changing an algorithm's output requires a new version.
 - Code names are in English; user-facing text uses the message files for French and English (E1.21).
 
