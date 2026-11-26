@@ -431,3 +431,5 @@ FodyWeavers.xsd
 **/target/
 .quarkus/
 skraft-config.local.json
+skraft-deliver-config.local.json
+/.repl/node_modules/
